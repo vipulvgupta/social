@@ -156,7 +156,128 @@ def estimate_relationship_strength_via_typing_speed_and_reciprocity(csv_path):
 
     return results
 
+import csv
+import datetime
+import math
+import decimal
+from decimal import Decimal
+import sys
 
+def tie_strength_using_time_differences_average_message_length_and_count (input_file):
+    with open('data.csv', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        names = []
+        times = []
+        types = []
+        lengths = []
+        d = {}
+        # print(counts)
+        for row in reader:
+            name = row[3]
+            # print(name)
+            names.append(name)
+            length = len(row[2])
+            lengths.append(length)
+            tim = row[0]
+            times.append(tim)
+            if name in d:
+                d[name].append([length,tim])
+            else:
+                d[name] = [[length,tim]]
+            # print(row)
+            # names.append(row['Name'])
+        # print(d)
+        names = list(dict.fromkeys(names).keys())
+        feats = []
+        for k in d:
+            cnt = len(d[k])
+            # print(cnt)
+            # arr = np.array(d[k])
+            # print(d[k])
+            sum = 0
+            diffsum = 0
+            for i in range(len(d[k])):
+                # arr[i][0] = int(arr[i][0])
+                sum += int(d[k][i][0])
+                if i>=1 :
+                    date_time_str = d[k][i-1][1][0:19]
+                    date_time_obj = datetime.datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
+                    date_time_str2 = d[k][i][1][0:19]
+                    date_time_obj2 = datetime.datetime.strptime(date_time_str2, '%Y-%m-%d %H:%M:%S')
+                    datediff = Decimal((date_time_obj2 - date_time_obj).total_seconds())
+                    datediff = float(datediff.ln())
+                    diffsum += datediff
+            # print(diffsum/cnt)
+            avgdiff = diffsum/cnt
+            avgl = sum/cnt
+            
+            # print(score)
+            # print(k)
+            feats.append([avgdiff,avgl,cnt])
+            # print(avgl)
+        # print(feats)
+        # feats = (feats - mu)/sigma
+        m1 =0
+        m2 = 0
+        m3 = 0
+        count = 0
+        count1 = 0
+        for i in range(len(feats)):
+            m1 += feats[i][0]
+            m2 += feats[i][1]
+            m3 += feats[i][2]
+            count +=1
+        # print(count)
+        m1 = m1/count
+        m2 = m2/count
+        m3 = m3/count
+        s1 = 0
+        s2 = 0
+        s3 = 0
+        for i in range(len(feats)):
+            s1 += (feats[i][0] - m1)**2
+            s2 += (feats[i][1] - m2)**2
+            s3 += (feats[i][2] - m3)**2
+            count1 += 1
+        s1 = math.sqrt(s1/count1)
+        s2 = math.sqrt(s2/count1)
+        s3 = math.sqrt(s3/count1)
+        # print(feats)
+        for i in range(len(feats)):
+            feats[i][0] = (feats[i][0] - m1)/s1
+            feats[i][1] = (feats[i][1] - m2)/s2
+            feats[i][2] = (feats[i][2] - m3)/s3
+        # print(feats)
+        scores = []
+        for i in range(len(feats)):
+            w1 = 0.75
+            w2 = 0.1
+            w3 = 0.15
+            # print(i)
+            # print(feats[i][0])
+            score = (w1*feats[i][0] + w2*feats[i][1] + w3*feats[i][2])/(w1+w2+w3)
+            scores.append(score)
+        maxelem = max(scores)
+        minelem = min(scores)
+        # print(minelem)
+        newscores = []
+        for i in range(len(scores)):
+            newscore = (scores[i] - minelem)/(maxelem-minelem)
+            newscores.append(float(newscore))
+            # print(type(newscores[i]))
+            # s = scores[i]/np.sum(scores)
+        weighteddict = dict(zip(names,newscores))
+        # print(weighteddict)
+        return weighteddict
+
+# this_module = sys.modules[__name__]
+# for attribute in dir(this_module):
+#   measure = getattr(this_module, attribute)
+#   if callable(measure):
+#     print(attribute, measure('data.csv'))
+
+# if __name__ == '__main__':
+#     tie_strength_using_time_differences_average_message_length_and_count('data.csv')
 
 # ----------------------------------------
 # DON'T EDIT BELOW HERE
